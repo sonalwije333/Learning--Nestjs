@@ -1,34 +1,49 @@
-import { Injectable } from '@nestjs/common';
-
-export type User = {
-  id: number;
-  name: string;
-  email: string;
-  username: string;
-  password: string;
-};
+import { Repository } from "typeorm";
+import { CreateUserDto } from "./dto/create-user.dto";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Injectable } from "@nestjs/common";
+import { User } from "./entities/user.entity";
+import { UserRole } from "./entities/user-role.entity";
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class UsersService {
-  private readonly users: User[] = [
-    {
-      id: 1,
-      name: 'sonal',
-      email: 'sonal@example.com',
-      username: 'sonal',
-      password: '1234',
-    },
-    {
-      id: 2,
-      name: 'minol',
-      email: 'minol@example.com',
-      username: 'minol',
-      password: '1234',
-    },
-  ];
+  constructor(
+    @InjectRepository(User)
+    private usersRepository: Repository<User>,
+    @InjectRepository(UserRole)
+    private userRoleRepository: Repository<UserRole>,
+  ) {}
 
-  // Example: Find a user by username
-  async findOne(username: string): Promise<User | undefined> {
-    return this.users.find((user) => user.username === username);
+  async create(createUserDto: CreateUserDto): Promise<User> {
+    const { password, ...userData } = createUserDto;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    let role = await this.userRoleRepository.findOne({ where: { role_name: 'Customer' } });
+    if (!role) {
+      role = this.userRoleRepository.create({ role_name: 'Customer' });
+      await this.userRoleRepository.save(role);
+    }
+
+    const user = this.usersRepository.create({
+      ...userData,
+      password: hashedPassword,
+      role,
+    });
+
+    return this.usersRepository.save(user);
+  }
+
+  async findOneByEmail(email: string): Promise<User | null> {
+    return this.usersRepository.findOne({ 
+      where: { email },
+      relations: ['role'],
+    });
+  }
+
+  async findAll(): Promise<User[]> {
+    return this.usersRepository.find({ relations: ['role'] });
   }
 }
+
+export { User };
