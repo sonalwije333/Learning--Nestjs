@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Req, ConflictException } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -16,10 +16,17 @@ export class AuthController {
   @ApiOperation({ summary: 'Register a new user' })
   @ApiResponse({ status: 201, description: 'User registered successfully' })
   @ApiResponse({ status: 400, description: 'Bad request' })
-  async register(@Body() registerDto: RegisterDto) {
-    return this.authService.register(registerDto);
+  @ApiResponse({ status: 409, description: 'Email already registered' })
+async register(@Body() registerDto: RegisterDto) {
+    try {
+      return await this.authService.register(registerDto);
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        throw error; // Let the conflict exception pass through
+      }
+      throw error; // Re-throw other errors
+    }
   }
-
   @UseGuards(LocalAuthGuard)
   @Post('login')
   @ApiOperation({ summary: 'Login user' })
