@@ -13,7 +13,7 @@ import { AppService } from './app.service';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: [
-        `.env.${process.env.NODE_ENV || 'development'}`, // Try environment-specific first
+        `.env.${process.env.NODE_ENV || 'development'}`, 
         '.env' // Fallback to default .env
       ],
     }),
