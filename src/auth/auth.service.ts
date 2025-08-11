@@ -15,6 +15,7 @@ import { MailService } from '../mail/mail.service';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
+import { JwtPayload } from 'jsonwebtoken';
 
 @Injectable()
 export class AuthService {
@@ -141,4 +142,19 @@ export class AuthService {
 
     await this.userService.update(user.id, { isEmailVerified: true });
   }
+  private generateTokens(user: User): TokenResponseDto {
+  const payload: JwtPayload = {
+    sub: user.id,           // Must include user ID
+    email: user.email,
+    role: user.role.role_name  // Include role
+  };
+
+  return {
+    access_token: this.jwtService.sign(payload),
+     refresh_token: this.jwtService.sign(payload, {
+      expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRATION'),
+      secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+    }),
+  };
+}
 }

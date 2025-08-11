@@ -7,6 +7,8 @@ import { User } from './user/entities/user.entity';
 import { UserRole } from './user/entities/user-role.entity';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { SeedsModule } from './database/seeds.module';
+import { UserRolesSeedService } from './database/user-role.seed';
 
 @Module({
   imports: [
@@ -34,8 +36,14 @@ import { AppService } from './app.service';
     }),
     AuthModule,
     UsersModule,
+    SeedsModule,
   ],
   controllers: [AppController], 
   providers: [AppService],      
 })
-export class AppModule {}
+export class AppModule {
+  constructor(private readonly userRolesSeedService: UserRolesSeedService) {}
+
+  async onApplicationBootstrap() {
+    await this.userRolesSeedService.run();
+}}

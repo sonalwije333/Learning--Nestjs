@@ -1,11 +1,4 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  JoinColumn,
-  CreateDateColumn,
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn } from 'typeorm';
 import { UserRole } from './user-role.entity';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsBoolean, IsOptional } from 'class-validator';
@@ -24,9 +17,12 @@ export class User {
   @Column()
   password: string;
 
-  @ManyToOne(() => UserRole)
+  @ManyToOne(() => UserRole, { eager: true }) 
   @JoinColumn({ name: 'role_id' })
   role: UserRole;
+
+  @Column({ name: 'role_id' })
+  roleId: number;
 
   @Column()
   contact_number: string;
@@ -34,6 +30,7 @@ export class User {
   @ApiProperty({ required: false })
   @IsOptional()
   @IsBoolean()
+  @Column({ default: false })
   isEmailVerified?: boolean;
 
   @CreateDateColumn()

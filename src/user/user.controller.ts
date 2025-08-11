@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   Query,
+  Req,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -59,16 +60,19 @@ export class UserController {
   }
 
 @Get(':id')
-  @Roles(Role.Admin, Role.Pharmacist)
-  @ApiOperation({ summary: 'Get user by ID' })
-  @ApiParam({ name: 'id', type: Number })
-  @ApiOkResponse({ 
-    description: 'User details', 
-    type: UserResponseDto
-  })
-  @ApiResponse({ status: 404, description: 'User not found' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
-async findOne(@Param('id') id: string): Promise<UserResponseDto> {
+@UseGuards(JwtAuthGuard) // Add this guard
+@Roles(Role.Admin, Role.Pharmacist)
+@ApiOperation({ summary: 'Get user by ID' })
+@ApiParam({ name: 'id', type: Number })
+@ApiOkResponse({ 
+  description: 'User details', 
+  type: UserResponseDto
+})
+async findOne(
+  @Param('id') id: string,
+  @Req() req // Add request parameter to access user info
+): Promise<UserResponseDto> {
+  console.log('Authenticated user:', req.user); // Debug log
   const user = await this.usersService.findOne(+id);
   return UserResponseDto.fromEntity(user);
 }
@@ -105,6 +109,8 @@ async findOne(@Param('id') id: string): Promise<UserResponseDto> {
     return this.usersService.update(+id, updateUserDto);
   }
 
+
+  
   @Delete(':id')
   @Roles(Role.Admin)
   @ApiOperation({ 

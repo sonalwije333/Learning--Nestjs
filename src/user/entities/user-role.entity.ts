@@ -9,9 +9,16 @@ export class UserRole {
   @Column({
     type: 'enum',
     enum: ['Admin', 'Pharmacist', 'Cashier', 'Customer', 'Supplier'],
+    unique: true,
   })
   role_name: string;
 
   @OneToMany(() => User, (user) => user.role)
   users: User[];
+
+  constructor(role_name?: string) {
+    if (role_name) {
+      this.role_name = role_name;
+    }
+  }
 }
