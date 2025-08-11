@@ -7,135 +7,152 @@ import {
   Param,
   Delete,
   UseGuards,
-  Query,
   Req,
+  Query,
 } from '@nestjs/common';
 import { UserService } from './user.service';
-import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../shared/decorators/roles.decorator';
 import { Role } from '../shared/enums/role.enum';
 import { RolesGuard } from '../shared/guards/roles.guard';
-import { 
-  ApiBearerAuth, 
-  ApiOperation, 
-  ApiResponse, 
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
   ApiTags,
-  ApiQuery,
   ApiParam,
   ApiOkResponse,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { User } from './entities/user.entity';
-import { UserResponseDto } from './dto/user-response.dto';
+import { PaginatedUsersResponseDto, UserResponseDto } from './dto/user-response.dto';
 
 @ApiTags('Users')
-@ApiBearerAuth()
+// Tells Swagger that this controller uses JWT authentication
+@ApiBearerAuth('JWT-auth')
+// Apply authentication & role-based access control to all routes in this controller
 @UseGuards(JwtAuthGuard, RolesGuard)
+// Base route for all endpoints in this controller
 @Controller('users')
 export class UserController {
   constructor(private readonly usersService: UserService) {}
 
-  @Post()
-  @Roles(Role.Admin)
-  @ApiOperation({ 
-    summary: 'Create a new user',
-    description: 'Admin only endpoint to create new users.'
+
+  /**
+   * Get all users with pagination
+   */
+  @Get()
+  @Roles(Role.Admin, Role.Pharmacist)
+  @ApiOperation({ summary: 'Get all users ' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiQuery({ name: 'role', required: false, enum: Role })
+  @ApiOkResponse({
+    description: 'Paginated list of users',
+    type: PaginatedUsersResponseDto,
   })
-  @ApiResponse({ 
-    status: 201, 
-    description: 'User created successfully', 
-    type: User 
-  })
-  @ApiResponse({ 
-    status: 400, 
-    description: 'Bad request. Invalid input data.' 
-  })
-  @ApiResponse({ 
-    status: 403, 
-    description: 'Forbidden. Only admins can access this endpoint.' 
-  })
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.create(createUserDto);
+  async findAll(
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('search') search?: string,
+    @Query('role') role?: Role,
+  ): Promise<PaginatedUsersResponseDto> {
+    return this.usersService.findAll({ page, limit, search, role });
   }
 
-@Get(':id')
-@UseGuards(JwtAuthGuard) // Add this guard
-@Roles(Role.Admin, Role.Pharmacist)
-@ApiOperation({ summary: 'Get user by ID' })
-@ApiParam({ name: 'id', type: Number })
-@ApiOkResponse({ 
-  description: 'User details', 
-  type: UserResponseDto
-})
-async findOne(
-  @Param('id') id: string,
-  @Req() req // Add request parameter to access user info
-): Promise<UserResponseDto> {
-  console.log('Authenticated user:', req.user); // Debug log
-  const user = await this.usersService.findOne(+id);
-  return UserResponseDto.fromEntity(user);
-}
+  /**
+   * Get user by ID
+   * Only Admin and Pharmacist roles are allowed to access this endpoint.
+   */
+  @Get(':id')
+  @UseGuards(JwtAuthGuard) 
+  @Roles(Role.Admin, Role.Pharmacist) 
+  @ApiOperation({ summary: 'Get user by ID' }) 
+  @ApiParam({ name: 'id', type: Number }) 
+  @ApiOkResponse({
+    description: 'User details',
+    type: UserResponseDto,
+  })
+  async findOne(
+    @Param('id') id: string, // Extracts 'id' from URL
+    @Req() req,              // Request object (contains authenticated user info)
+  ): Promise<UserResponseDto> {
+    console.log('Authenticated user:', req.user); // Debug: log current authenticated user
+    const user = await this.usersService.findOne(+id); // Fetch user from DB
+    return UserResponseDto.fromEntity(user); // Convert entity to response DTO
+  }
+
+  /**
+   * Update user details by ID
+   * Only Admin can update user data.
+   */
   @Patch(':id')
-  @Roles(Role.Admin)
-  @ApiOperation({ 
+  @Roles(Role.Admin) // Restrict to Admin role
+  @ApiOperation({
     summary: 'Update a user',
-    description: 'Admin only endpoint to update user details.'
+    description: 'Admin only endpoint to update user details.',
   })
   @ApiParam({
     name: 'id',
     type: Number,
     description: 'User ID',
-    example: 1
+    example: 1,
   })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'User updated successfully', 
-    type: User 
+  @ApiResponse({
+    status: 200,
+    description: 'User updated successfully',
+    type: User,
   })
-  @ApiResponse({ 
-    status: 400, 
-    description: 'Bad request. Invalid input data.' 
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request. Invalid input data.',
   })
-  @ApiResponse({ 
-    status: 404, 
-    description: 'User not found' 
+  @ApiResponse({
+    status: 404,
+    description: 'User not found',
   })
-  @ApiResponse({ 
-    status: 403, 
-    description: 'Forbidden. Only admins can access this endpoint.' 
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden. Only admins can access this endpoint.',
   })
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(+id, updateUserDto);
+  update(
+    @Param('id') id: string, // User ID from URL
+    @Body() updateUserDto: UpdateUserDto, // Updated fields from request body
+  ) {
+    return this.usersService.update(+id, updateUserDto); // Update in DB
   }
 
-
-  
+  /**
+   * Delete a user by ID
+   * Only Admin can delete users.
+   */
   @Delete(':id')
-  @Roles(Role.Admin)
-  @ApiOperation({ 
+  @Roles(Role.Admin) // Restrict to Admin role
+  @ApiOperation({
     summary: 'Delete a user',
-    description: 'Admin only endpoint to delete a user.'
+    description: 'Admin only endpoint to delete a user.',
   })
   @ApiParam({
     name: 'id',
     type: Number,
     description: 'User ID',
-    example: 1
+    example: 1,
   })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'User deleted successfully' 
+  @ApiResponse({
+    status: 200,
+    description: 'User deleted successfully',
   })
-  @ApiResponse({ 
-    status: 404, 
-    description: 'User not found' 
+  @ApiResponse({
+    status: 404,
+    description: 'User not found',
   })
-  @ApiResponse({ 
-    status: 403, 
-    description: 'Forbidden. Only admins can access this endpoint.' 
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden. Only admins can access this endpoint.',
   })
   remove(@Param('id') id: string) {
-    return this.usersService.remove(+id);
+    return this.usersService.remove(+id); // Remove user from DB
   }
 }

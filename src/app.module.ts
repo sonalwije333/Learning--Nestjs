@@ -37,6 +37,7 @@ import { UserRolesSeedService } from './database/user-role.seed';
     AuthModule,
     UsersModule,
     SeedsModule,
+    //
   ],
   controllers: [AppController], 
   providers: [AppService],      
