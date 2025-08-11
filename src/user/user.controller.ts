@@ -26,7 +26,8 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { User } from './entities/user.entity';
-import { PaginatedUsersResponseDto, UserResponseDto } from './dto/user-response.dto';
+import {  UserResponseDto } from './dto/user-response.dto';
+import { PaginatedUsersResponseDto } from './dto/pagination-response.dto';
 
 @ApiTags('Users')
 // Tells Swagger that this controller uses JWT authentication
@@ -88,41 +89,34 @@ export class UserController {
    * Update user details by ID
    * Only Admin can update user data.
    */
-  @Patch(':id')
-  @Roles(Role.Admin) // Restrict to Admin role
-  @ApiOperation({
-    summary: 'Update a user',
-    description: 'Admin only endpoint to update user details.',
-  })
-  @ApiParam({
-    name: 'id',
-    type: Number,
-    description: 'User ID',
-    example: 1,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'User updated successfully',
-    type: User,
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad request. Invalid input data.',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'User not found',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden. Only admins can access this endpoint.',
-  })
-  update(
-    @Param('id') id: string, // User ID from URL
-    @Body() updateUserDto: UpdateUserDto, // Updated fields from request body
-  ) {
-    return this.usersService.update(+id, updateUserDto); // Update in DB
-  }
+
+@Patch(':id')
+@Roles(Role.Admin)
+@ApiOperation({ 
+  summary: 'Update user by ID', 
+  description: 'Admin can update user details. Returns updated user data.' 
+})
+@ApiParam({ 
+  name: 'id', 
+  type: Number, 
+  description: 'User ID to update',
+  example: 1 
+})
+@ApiResponse({ 
+  status: 200, 
+  description: 'User updated successfully', 
+  type: UserResponseDto 
+})
+@ApiResponse({ status: 400, description: 'Bad request' })
+@ApiResponse({ status: 404, description: 'User not found' })
+@ApiResponse({ status: 403, description: 'Forbidden' })
+async updateUser(
+  @Param('id') id: string,
+  @Body() updateUserDto: UpdateUserDto,
+): Promise<UserResponseDto> {
+  const updatedUser = await this.usersService.update(+id, updateUserDto);
+  return UserResponseDto.fromEntity(updatedUser);
+}
 
   /**
    * Delete a user by ID

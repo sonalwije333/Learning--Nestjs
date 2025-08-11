@@ -1,4 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
+// src/users/dto/update-user.dto.ts
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsEmail,
   IsOptional,
@@ -6,32 +7,38 @@ import {
   MinLength,
   IsPhoneNumber,
   IsBoolean,
+  IsEnum,
 } from 'class-validator';
+import { Role } from '../../shared/enums/role.enum';
 
 export class UpdateUserDto {
-  @ApiProperty({ required: false })
+  @ApiPropertyOptional({ example: 'Updated Name' })
   @IsOptional()
   @IsString()
   name?: string;
 
-  @ApiProperty({ required: false })
+  @ApiPropertyOptional({ example: 'updated@example.com' })
   @IsOptional()
   @IsEmail()
   email?: string;
 
-  @ApiProperty({ required: false, minLength: 6 })
+  @ApiPropertyOptional({ minLength: 6, example: 'newpassword123' })
   @IsOptional()
   @IsString()
   @MinLength(6)
   password?: string;
 
-  @ApiProperty({ required: false })
+  @ApiPropertyOptional({ example: '+1234567890' })
   @IsOptional()
-  @IsPhoneNumber()
   contact_number?: string;
 
-  @ApiProperty({ required: false })
+  @ApiPropertyOptional({ example: true })
   @IsOptional()
   @IsBoolean()
   isEmailVerified?: boolean;
+
+  @ApiPropertyOptional({ enum: Role, example: Role.Admin })
+  @IsOptional()
+  @IsEnum(Role)
+  role?: Role;
 }

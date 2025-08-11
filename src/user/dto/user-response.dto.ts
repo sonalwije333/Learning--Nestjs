@@ -1,3 +1,4 @@
+// src/users/dto/user-response.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
 import { User } from '../entities/user.entity';
 import { Role } from '../../shared/enums/role.enum';
@@ -21,6 +22,9 @@ export class UserResponseDto {
   @ApiProperty({ example: '2023-01-01T00:00:00.000Z' })
   createdAt: Date;
 
+  @ApiProperty({ example: true })
+  isEmailVerified: boolean;
+
   static fromEntity(user: User): UserResponseDto {
     const dto = new UserResponseDto();
     dto.id = user.id;
@@ -29,23 +33,7 @@ export class UserResponseDto {
     dto.role = user.role.role_name;
     dto.contactNumber = user.contact_number;
     dto.createdAt = user.created_at;
+    dto.isEmailVerified = user.isEmailVerified;
     return dto;
   }
-}
-
-export class PaginatedUsersResponseDto {
-  @ApiProperty({ type: [UserResponseDto] })
-  data: UserResponseDto[];
-
-  @ApiProperty({ example: 100 })
-  total: number;
-
-  @ApiProperty({ example: 1 })
-  page: number;
-
-  @ApiProperty({ example: 10 })
-  limit: number;
-
-  @ApiProperty({ example: 10 })
-  totalPages: number;
 }

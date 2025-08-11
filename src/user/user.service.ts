@@ -10,7 +10,9 @@ import { UserRole } from './entities/user-role.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Role } from '../shared/enums/role.enum';
-import { PaginatedUsersResponseDto, UserResponseDto } from './dto/user-response.dto';
+import {  UserResponseDto } from './dto/user-response.dto';
+import { PaginatedUsersResponseDto } from './dto/pagination-response.dto';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UserService {
@@ -134,19 +136,29 @@ export class UserService {
 
   /**
    * Update user details by ID
-   * @param id - User ID
-   * @param updateUserDto - Fields to update
+  
    */
-  async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
-    // Ensure the user exists before updating
-    const user = await this.findOne(id);
 
-    // Merge existing user with new data
-    const updatedUser = this.usersRepository.merge(user, updateUserDto);
-
-    // Save changes to database
-    return this.usersRepository.save(updatedUser);
+async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
+  const user = await this.findOne(id);
+  // Handle role update if provided
+  if (updateUserDto.role) {
+    const userRole = await this.userRoleRepository.findOne({
+      where: { role_name: updateUserDto.role },
+    });
+    if (!userRole) {
+      throw new NotFoundException(`Role ${updateUserDto.role} not found`);
+    }
+    user.role = userRole;
   }
+  if (updateUserDto.password) {
+    updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
+  }
+  const { role, ...updateData } = updateUserDto;
+  // Manually update fields instead of using merge
+  Object.assign(user, updateData);
+  return this.usersRepository.save(user);
+}
 
   /**
    * Delete a user by ID
