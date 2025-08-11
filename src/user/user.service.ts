@@ -108,7 +108,7 @@ export class UserService {
   }
 
   /**
-   * Retrieve a single user by ID
+   * Get single user by ID
    */
   async findOne(id: number): Promise<User> {
     const user = await this.usersRepository.findOne({
@@ -136,8 +136,7 @@ export class UserService {
 
   /**
    * Update user details by ID
-  
-   */
+  */
 
 async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
   const user = await this.findOne(id);
